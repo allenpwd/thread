@@ -3,11 +3,18 @@ package callable;
 import java.util.concurrent.Callable;
 
 /**
+ * 测试 带返回值的多线程
+ *
  * @author pwd
  * @create 2018-12-16 13:09
  **/
 public class MyCallable implements Callable<Long> {
 
+    /**
+     * 返回执行时长
+     * @return
+     * @throws Exception
+     */
     public Long call() throws Exception {
         long rel = 0;
         String name = Thread.currentThread().getName();
