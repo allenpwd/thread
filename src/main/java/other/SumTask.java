@@ -1,7 +1,9 @@
+package other;
+
 import java.util.concurrent.RecursiveTask;
 
 /**
- * 实现数字之和
+ * 使用fork、join方式实现数字之和
  *
  * @author 门那粒沙
  * @create 2020-03-10 20:50

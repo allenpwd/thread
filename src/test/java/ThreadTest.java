@@ -1,10 +1,10 @@
 import callable.MyCallable;
 import org.junit.Test;
+import other.SumTask;
 import runnable.MyRunnable;
 import runnable.MyThread;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
