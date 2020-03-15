@@ -1,6 +1,7 @@
 import callable.MyCallable;
 import org.junit.Test;
 import other.SumTask;
+import rejectedExecutionHandler.BlockingRejectedExecutionHandler;
 import runnable.MyRunnable;
 import runnable.MyThread;
 
@@ -183,5 +184,52 @@ public class ThreadTest {
         System.out.println("The count is "+sumTask.join());
         System.out.println("spend time:"+(System.currentTimeMillis()-start)+"ms");
     }
+
+    /**
+     * newFixedThreadPool：固定线程数，多余任务几乎可以无限存储，阻塞队列为LinkedBlockingQueue
+     * newSingleThreadExecutor：只有一个线程，一次处理一个任务
+     * newCachedThreadPool：无限分配线程去处理任务，阻塞队列为SynchronousQueue
+     * 拓展：可以写个RejectedExecutionHandler，在里面
+     * @throws InterruptedException
+     */
+    @Test
+    public void threadPool() throws InterruptedException {
+        ExecutorService threadPool = null;
+//        threadPool = Executors.newFixedThreadPool(5);
+//        threadPool = Executors.newSingleThreadExecutor();
+//        threadPool = Executors.newCachedThreadPool();
+        //自定义属性
+        threadPool = new ThreadPoolExecutor(2, 5, 1, TimeUnit.SECONDS
+                , new LinkedBlockingDeque<Runnable>(5)
+                , Executors.defaultThreadFactory()
+                , new BlockingRejectedExecutionHandler());
+
+        for (int i = 0; i < 10; i++) {
+            final int int_temp = i;
+            threadPool.execute(() -> {
+                System.out.println(String.format("【%s】处理开始:%s", Thread.currentThread().getName(), int_temp));
+                try {
+                    TimeUnit.SECONDS.sleep(1);
+                } catch (InterruptedException e) {}
+                System.out.println(String.format("【%s】处理完成:%s", Thread.currentThread().getName(), int_temp));
+            });
+        }
+
+        //等待其他线程完成
+        while (((ThreadPoolExecutor) threadPool).getActiveCount() > 0) {
+            TimeUnit.SECONDS.sleep(1);
+        }
+        System.out.println("任务执行完毕");
+    }
+
+    /**
+     * 测试死锁
+     * 拓展：可以用jstack工具检测死锁情况
+     */
+    @Test
+    public void testDeadLock() {
+
+    }
+
 }
 

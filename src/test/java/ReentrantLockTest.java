@@ -1,6 +1,7 @@
 import org.junit.Test;
 
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -22,13 +23,15 @@ public class ReentrantLockTest {
                 //线程可以进入任何一个它已经拥有的锁所同步的代码块
                 System.out.println(String.format("【%s】doOne", Thread.currentThread().getName()));
                 doTwo();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             } finally {
                 lock.unlock();
 //                lock.unlock();
             }
         }
-        public void doTwo() {
-            lock.lock();
+        public void doTwo() throws InterruptedException {
+            lock.lockInterruptibly();//这里用成lockInterruptibly，可中断，如果中断了lock()并不知道，还是会一直阻塞
             try {
                 System.out.println(String.format("【%s】doTwo", Thread.currentThread().getName()));
             } finally {
@@ -53,5 +56,40 @@ public class ReentrantLockTest {
         }, "t2").start();
 
         TimeUnit.SECONDS.sleep(1);
+    }
+
+    /**
+     * condition.await()和condition.signal()需要在取得所属lock的条件下才能使用，否则会抛异常：java.lang.IllegalMonitorStateException
+     * @throws InterruptedException
+     */
+    @Test
+    public void testCondition() throws InterruptedException {
+        ReentrantLock lock = new ReentrantLock();
+        Condition cond = lock.newCondition();
+
+        new Thread(() -> {
+            lock.lock();
+            try {
+                System.out.println(String.format("【%s】 begin", Thread.currentThread().getName()));
+                cond.await();
+                System.out.println(String.format("【%s】 end", Thread.currentThread().getName()));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } finally {
+                lock.unlock();
+            }
+        }, "t1").start();
+
+        TimeUnit.SECONDS.sleep(2);
+
+        lock.lock();
+        try {
+            cond.signal();
+        } finally {
+            lock.unlock();
+        }
+
+        TimeUnit.SECONDS.sleep(1);
+
     }
 }
