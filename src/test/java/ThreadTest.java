@@ -198,7 +198,7 @@ public class ThreadTest {
 //        threadPool = Executors.newFixedThreadPool(5);
 //        threadPool = Executors.newSingleThreadExecutor();
 //        threadPool = Executors.newCachedThreadPool();
-        //自定义属性
+        //自定义属性，拒绝策略设置成阻塞
         threadPool = new ThreadPoolExecutor(2, 5, 1, TimeUnit.SECONDS
                 , new LinkedBlockingDeque<Runnable>(5)
                 , Executors.defaultThreadFactory()
@@ -224,11 +224,40 @@ public class ThreadTest {
 
     /**
      * 测试死锁
-     * 拓展：可以用jstack工具检测死锁情况
+     * 拓展：可以用jstack工具检测死锁情况，打印出：Found one Java-level deadlock
      */
     @Test
-    public void testDeadLock() {
+    public void testDeadLock() throws InterruptedException {
+        Object lock1 = new Object();
+        Object lock2 = new Object();
 
+        new Thread(() -> {
+            synchronized (lock1) {
+                System.out.println(String.format("【%s】已获得lock1，1s后尝试获取lock2", Thread.currentThread().getName()));
+                try {
+                    TimeUnit.SECONDS.sleep(1);
+                } catch (InterruptedException e) {}
+                synchronized (lock2) {
+                    System.out.println(String.format("【%s】已获得lock1和lock2", Thread.currentThread().getName()));
+                }
+            }
+        }, "t1").start();
+        new Thread(() -> {
+            synchronized (lock2) {
+                System.out.println(String.format("【%s】已获得lock2，1s后尝试获取lock1", Thread.currentThread().getName()));
+                try {
+                    TimeUnit.SECONDS.sleep(1);
+                } catch (InterruptedException e) {}
+                synchronized (lock1) {
+                    System.out.println(String.format("【%s】已获得lock2和lock1", Thread.currentThread().getName()));
+                }
+            }
+        }, "t2").start();
+
+        //等待线程执行完毕
+        while (Thread.activeCount() > 2) {
+            TimeUnit.SECONDS.sleep(1);
+        }
     }
 
 }
