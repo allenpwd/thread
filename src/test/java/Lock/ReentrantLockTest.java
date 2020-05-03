@@ -1,3 +1,5 @@
+package Lock;
+
 import org.junit.Test;
 
 import java.util.concurrent.TimeUnit;
@@ -16,24 +18,40 @@ public class ReentrantLockTest {
 
         private ReentrantLock lock = new ReentrantLock(false);
 
-        public void doOne() {
+        public void doOne(long time) {
             lock.lock();
 //            lock.lock();
             try {
                 //线程可以进入任何一个它已经拥有的锁所同步的代码块
                 System.out.println(String.format("【%s】doOne", Thread.currentThread().getName()));
-                doTwo();
+                doTwo(time);
             } catch (InterruptedException e) {
+                System.out.println(String.format("【%s】doOne：线程已中断", Thread.currentThread().getName()));
                 e.printStackTrace();
             } finally {
                 lock.unlock();
 //                lock.unlock();
             }
         }
-        public void doTwo() throws InterruptedException {
+        public void doTwo(long time) throws InterruptedException {
             lock.lockInterruptibly();//这里用成lockInterruptibly，可中断，如果中断了lock()并不知道，还是会一直阻塞
             try {
                 System.out.println(String.format("【%s】doTwo", Thread.currentThread().getName()));
+                long begin = System.currentTimeMillis();
+                while (System.currentTimeMillis() - begin < time) {
+                }
+            } finally {
+                lock.unlock();
+            }
+        }
+        public void doThree(long time) {
+            lock.lock();
+            try {
+                //线程可以进入任何一个它已经拥有的锁所同步的代码块
+                System.out.println(String.format("【%s】doOne", Thread.currentThread().getName()));
+                long begin = System.currentTimeMillis();
+                while (System.currentTimeMillis() - begin < time) {
+                }
             } finally {
                 lock.unlock();
             }
@@ -49,10 +67,10 @@ public class ReentrantLockTest {
     public void test() throws InterruptedException {
         Demo demo = new Demo();
         new Thread(() -> {
-            demo.doOne();
+            demo.doOne(0);
         }, "t1").start();
         new Thread(() -> {
-            demo.doOne();
+            demo.doOne(0);
         }, "t2").start();
 
         TimeUnit.SECONDS.sleep(1);
@@ -90,6 +108,34 @@ public class ReentrantLockTest {
         }
 
         TimeUnit.SECONDS.sleep(1);
+    }
 
+
+    /**
+     * 测试中断
+     */
+    @Test
+    public void intercept() throws InterruptedException {
+        Demo demo = new Demo();
+
+        //<editor-fold desc="ReentrantLock.lock方式无法中断，除非处于sleep或者wait状态">
+        Thread thread1 = new Thread(() -> {
+            demo.doThree(10000);
+        });
+        thread1.start();
+        thread1.interrupt();
+        //</editor-fold>
+
+        //<editor-fold desc="ReentrantLock.lockInterruptibly方式即使是运行状态也可以中断">
+        Thread thread2 = new Thread(() -> {
+            demo.doOne(10000);
+        });
+        thread2.start();
+        thread2.interrupt();
+        //</editor-fold>
+
+        while (Thread.activeCount() > 2) {
+            Thread.sleep(500);
+        }
     }
 }

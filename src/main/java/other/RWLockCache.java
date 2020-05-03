@@ -14,7 +14,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * @author 门那粒沙
  * @create 2020-03-12 9:12
  **/
-public class MyCache {
+public class RWLockCache {
     private volatile Map<String, Object> map = new HashMap<>();
     private ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
 
@@ -43,6 +43,7 @@ public class MyCache {
 
     /**
      * 加了读锁，当没有其他线程在写时才能读；可多个线程同时读
+     *
      * @param key
      */
     public void get(String key) {
@@ -63,25 +64,4 @@ public class MyCache {
         map.clear();
     }
 
-    public static void main(String[] args) {
-        MyCache myCache = new MyCache();
-        for (int i = 1; i <= 5; i++) {
-            final int tempInt = i;
-            new Thread(() -> {
-                myCache.put(tempInt + "", tempInt + "");
-            }, "Thread " + i).start();
-        }
-        for (int i = 1; i <= 5; i++) {
-            final int tempInt = i;
-            new Thread(() -> {
-                myCache.get(tempInt + "");
-            }, "Thread " + i).start();
-        }
-        for (int i = 1; i <= 5; i++) {
-            final int tempInt = i;
-            new Thread(() -> {
-                myCache.put(tempInt + "", tempInt * 2);
-            }, "Thread====" + i).start();
-        }
-    }
 }

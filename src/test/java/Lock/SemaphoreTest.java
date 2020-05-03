@@ -1,3 +1,5 @@
+package Lock;
+
 import org.junit.Test;
 
 import java.util.concurrent.Semaphore;

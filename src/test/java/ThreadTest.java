@@ -6,6 +6,7 @@ import runnable.MyRunnable;
 import runnable.MyThread;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
@@ -186,10 +187,11 @@ public class ThreadTest {
     }
 
     /**
+     * 测试常用的线程池
+     *
      * newFixedThreadPool：固定线程数，多余任务几乎可以无限存储，阻塞队列为LinkedBlockingQueue
      * newSingleThreadExecutor：只有一个线程，一次处理一个任务
      * newCachedThreadPool：无限分配线程去处理任务，阻塞队列为SynchronousQueue
-     * 拓展：可以写个RejectedExecutionHandler，在里面
      * @throws InterruptedException
      */
     @Test
@@ -197,12 +199,9 @@ public class ThreadTest {
         ExecutorService threadPool = null;
 //        threadPool = Executors.newFixedThreadPool(5);
 //        threadPool = Executors.newSingleThreadExecutor();
-//        threadPool = Executors.newCachedThreadPool();
-        //自定义属性，拒绝策略设置成阻塞
-        threadPool = new ThreadPoolExecutor(2, 5, 1, TimeUnit.SECONDS
-                , new LinkedBlockingDeque<Runnable>(5)
-                , Executors.defaultThreadFactory()
-                , new BlockingRejectedExecutionHandler());
+        threadPool = Executors.newCachedThreadPool();
+
+        final long begin = System.currentTimeMillis();
 
         for (int i = 0; i < 10; i++) {
             final int int_temp = i;
@@ -211,7 +210,39 @@ public class ThreadTest {
                 try {
                     TimeUnit.SECONDS.sleep(1);
                 } catch (InterruptedException e) {}
-                System.out.println(String.format("【%s】处理完成:%s", Thread.currentThread().getName(), int_temp));
+                System.out.println(String.format("【%s】处理完成:%s 毫秒:%s", Thread.currentThread().getName(), int_temp, System.currentTimeMillis() - begin));
+            });
+        }
+
+        //等待其他线程完成
+        while (((ThreadPoolExecutor) threadPool).getActiveCount() > 0) {
+            TimeUnit.SECONDS.sleep(1);
+        }
+        System.out.println("任务执行完毕");
+    }
+
+    /**
+     * 自定义线程池属性，拒绝策略设置成阻塞
+     * 结果：11个任务中，前两个先由核心线程执行，中间5个排满阻塞队列，然后接下来3个继续分配3个额外线程去执行，最后一个会因为拒绝策略而阻塞
+     */
+    @Test
+    public void customRejectedExcutionHandler() throws InterruptedException {
+        ExecutorService threadPool = new ThreadPoolExecutor(2, 5, 1, TimeUnit.SECONDS
+                , new LinkedBlockingDeque<Runnable>(5)
+                , Executors.defaultThreadFactory()
+                , new BlockingRejectedExecutionHandler());
+
+        final long begin = System.currentTimeMillis();
+
+        //
+        for (int i = 0; i < 11; i++) {
+            final int int_temp = i;
+            threadPool.execute(() -> {
+                System.out.println(String.format("【%s】处理开始:%s", Thread.currentThread().getName(), int_temp));
+                try {
+                    TimeUnit.SECONDS.sleep(1);
+                } catch (InterruptedException e) {}
+                System.out.println(String.format("【%s】处理完成:%s 毫秒:%s", Thread.currentThread().getName(), int_temp, System.currentTimeMillis() - begin));
             });
         }
 

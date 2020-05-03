@@ -1,5 +1,7 @@
+package Lock;
+
 import org.junit.Test;
-import other.MyCache;
+import other.RWLockCache;
 
 import java.util.concurrent.TimeUnit;
 
@@ -21,27 +23,45 @@ public class ReadWriteLockTest {
      */
     @Test
     public void test() throws InterruptedException {
-        MyCache myCache = new MyCache();
+        RWLockCache RWLockCache = new RWLockCache();
+
+        //<editor-fold desc="测试多线程同时写和读">
         for (int i = 1; i <= 5; i++) {
             final int tempInt = i;
             new Thread(() -> {
-                myCache.put(tempInt + "", tempInt + "");
+                RWLockCache.put(tempInt + "", tempInt + "");
             }, "Thread " + i).start();
         }
         for (int i = 1; i <= 5; i++) {
             final int tempInt = i;
             new Thread(() -> {
-                myCache.get(tempInt + "");
+                RWLockCache.get(tempInt + "");
             }, "Thread " + i).start();
         }
         for (int i = 1; i <= 5; i++) {
             final int tempInt = i;
             new Thread(() -> {
-                myCache.put(tempInt + "", tempInt * 2);
+                RWLockCache.put(tempInt + "", tempInt * 2);
             }, "Thread====" + i).start();
         }
+        //</editor-fold>
 
-        TimeUnit.SECONDS.sleep(2000);
+
+        //<editor-fold desc="测试有线程在读的时候能不能写">
+//        new Thread(() -> {
+//            RWLockCache.get("a");
+//        }).start();
+//        //如果要获取写入锁，需要满足当前没有线程读和写
+//        System.out.println("尝试写入");
+//        new Thread(() -> {
+//            RWLockCache.put("a", 1);
+//        }).start();
+        //</editor-fold>
+
+        //让测试方法等待线程跑完再退出
+        while (Thread.activeCount() > 2) {
+            Thread.sleep(500);
+        }
     }
 
 }
