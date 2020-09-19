@@ -138,4 +138,34 @@ public class ReentrantLockTest {
             Thread.sleep(500);
         }
     }
+
+
+    @Test
+    public void test1() {
+
+        Thread thread = new Thread(() -> {
+            ReentrantLock reentrantLock = new ReentrantLock();
+            try {
+                reentrantLock.lockInterruptibly();
+
+                long time = 10000;
+
+                //模拟业务处理10s
+                long begin = System.currentTimeMillis();
+                while (System.currentTimeMillis() - begin < time) {
+                }
+
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                System.out.println("线程被中断");
+            } finally {
+                reentrantLock.unlock();
+            }
+        });
+        thread.start();
+        thread.interrupt();
+
+        while (Thread.activeCount() > 2) {
+        }
+    }
 }
