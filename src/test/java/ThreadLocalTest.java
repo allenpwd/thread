@@ -73,7 +73,12 @@ public class ThreadLocalTest {
 
     /**
      * TransmittableThreadLocal 解决线程池变量传递问题
-     * 在使用完这个线程的时候清除所有的localMap，在submit新任务的时候在重新重父线程中copy所有的Entry。然后重新给当前线程的t.inhertableThreadLocal赋值
+     * 在使用完这个线程的时候清除所有的localMap，在submit新任务的时候在重新从父线程中copy所有的Entry。然后重新给当前线程的t.inhertableThreadLocal赋值
+     *
+     * 可以使用一下任意一种包装方式：
+     *  TtlExecutors.getTtlExecutorService：包装ExecutorService
+     *  TtlRunnable.get：包装Runnable
+     *  TtlCallable.get：包装Callable
      * @throws InterruptedException
      */
     @Test

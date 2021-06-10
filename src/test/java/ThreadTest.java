@@ -5,6 +5,7 @@ import rejectedExecutionHandler.BlockingRejectedExecutionHandler;
 import runnable.MyRunnable;
 import runnable.MyThread;
 
+import java.sql.Time;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -289,6 +290,62 @@ public class ThreadTest {
         while (Thread.activeCount() > 2) {
             TimeUnit.SECONDS.sleep(1);
         }
+    }
+
+    /**
+     * 测试FutureTask.cancel(boolean)方法
+     * 结论：并不能取消正在执行中的任务
+     */
+    @Test
+    public void cancel() throws ExecutionException, InterruptedException {
+        //准备线程池
+        ExecutorService es = Executors.newFixedThreadPool(10);
+
+        long beginTime = System.currentTimeMillis();
+
+        FutureTask<Long> task = new FutureTask<Long>(new Callable<Long>() {
+            @Override
+            public Long call() throws Exception {
+                System.out.println(String.format("【%s】call begin", Thread.currentThread().getName()));
+                long begin = System.currentTimeMillis();
+                while (System.currentTimeMillis() - begin < 5000) {
+                }
+                System.out.println(String.format("【%s】call end", Thread.currentThread().getName()));
+                return 100L;
+            }
+        });
+        es.execute(task);
+
+        System.out.println("已提交");
+
+        //<editor-fold desc="弄一个线程来后取消task">
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    TimeUnit.SECONDS.sleep(2);
+                    System.out.println("取消task");
+//                    task.cancel(true);  // 这个不能取消正在执行的任务，会使get阻塞时抛出CancellationException异常
+                    task.cancel(false);  // 这个不能取消正在执行的任务，会使get阻塞时抛出CancellationException异常
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+        //</editor-fold>
+
+        try {
+            System.out.println(String.format("结果：%s", task.get()));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            System.out.println("被中断");
+        } catch (CancellationException e) {
+            e.printStackTrace();
+            System.out.println("被取消");
+        }
+
+        //等待线程执行完毕
+        TimeUnit.SECONDS.sleep(4);
     }
 
 }

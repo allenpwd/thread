@@ -2,6 +2,7 @@ package Lock;
 
 import org.junit.Test;
 
+import java.util.Date;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
@@ -17,43 +18,51 @@ public class ReentrantLockTest {
     class Demo {
 
         private ReentrantLock lock = new ReentrantLock(false);
+        private ReentrantLock lock2 = new ReentrantLock(false);
 
         public void doOne(long time) {
             lock.lock();
 //            lock.lock();
             try {
                 //线程可以进入任何一个它已经拥有的锁所同步的代码块
-                System.out.println(String.format("【%s】doOne", Thread.currentThread().getName()));
+                System.out.println(String.format("【%s】doOne beign", Thread.currentThread().getName()));
                 doTwo(time);
-            } catch (InterruptedException e) {
-                System.out.println(String.format("【%s】doOne：线程已中断", Thread.currentThread().getName()));
-                e.printStackTrace();
+                System.out.println(String.format("【%s】doOne end", Thread.currentThread().getName()));
             } finally {
                 lock.unlock();
 //                lock.unlock();
             }
         }
-        public void doTwo(long time) throws InterruptedException {
-            lock.lockInterruptibly();//这里用成lockInterruptibly，可中断，如果中断了lock()并不知道，还是会一直阻塞
+        public void doTwo(long time) {
             try {
-                System.out.println(String.format("【%s】doTwo", Thread.currentThread().getName()));
-                long begin = System.currentTimeMillis();
-                while (System.currentTimeMillis() - begin < time) {
+                lock.lockInterruptibly();//这里用成lockInterruptibly，可中断，如果中断了lock()并不知道，还是会一直阻塞
+                try {
+                    System.out.println(String.format("【%s】doTwo begin", Thread.currentThread().getName()));
+                    long begin = System.currentTimeMillis();
+                    int i = 0;
+                    while (System.currentTimeMillis() - begin < time) {
+//                        System.out.println(i++);
+                    }
+                    System.out.println(String.format("【%s】doTwo end", Thread.currentThread().getName()));
+                } finally {
+                    lock.unlock();
                 }
-            } finally {
-                lock.unlock();
+            } catch (InterruptedException e) {
+                System.out.println(String.format("【%s】doTwo：线程已中断", Thread.currentThread().getName()));
+                e.printStackTrace();
             }
         }
         public void doThree(long time) {
-            lock.lock();
+            lock2.lock();
             try {
                 //线程可以进入任何一个它已经拥有的锁所同步的代码块
-                System.out.println(String.format("【%s】doOne", Thread.currentThread().getName()));
+                System.out.println(String.format("【%s】doThree begin", Thread.currentThread().getName()));
                 long begin = System.currentTimeMillis();
                 while (System.currentTimeMillis() - begin < time) {
                 }
+                System.out.println(String.format("【%s】doThree end", Thread.currentThread().getName()));
             } finally {
-                lock.unlock();
+                lock2.unlock();
             }
         }
     }
@@ -98,11 +107,14 @@ public class ReentrantLockTest {
             }
         }, "t1").start();
 
+        System.out.println("调用signal()方法前");
         TimeUnit.SECONDS.sleep(2);
 
         lock.lock();
         try {
+            TimeUnit.SECONDS.sleep(2);
             cond.signal();
+            System.out.println("调用signal()方法后");
         } finally {
             lock.unlock();
         }
@@ -113,6 +125,8 @@ public class ReentrantLockTest {
 
     /**
      * 测试中断
+     * 问题：测试的两个线程用了同个锁，导致两个线程同步执行，影响结果
+     * todo start()后延迟一会儿才interrupt的话，即使是lockInterruptibly也仍然不会被中断
      */
     @Test
     public void intercept() throws InterruptedException {
@@ -128,7 +142,8 @@ public class ReentrantLockTest {
 
         //<editor-fold desc="ReentrantLock.lockInterruptibly方式即使是运行状态也可以中断">
         Thread thread2 = new Thread(() -> {
-            demo.doOne(10000);
+//            demo.doTwo(10000); // doTwo可以被中断
+            demo.doOne(10000); // doOne里调用doTwo，doTwo可以被中断
         });
         thread2.start();
         thread2.interrupt();
